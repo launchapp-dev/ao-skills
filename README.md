@@ -17,6 +17,8 @@ cp ~/ao-skills/skills/*.md ~/.claude/commands/
 | Skill | Description |
 |-------|-------------|
 | [getting-started](skills/getting-started.md) | Install AO, create first task, run first workflow |
+| [mcp-setup](skills/mcp-setup.md) | Set up `.mcp.json`, Claude Code permissions, connect AI tools |
+| [configuration](skills/configuration.md) | Project config, daemon config, agent runtime, state layout |
 | [task-management](skills/task-management.md) | Full task lifecycle via CLI and MCP |
 | [workflow-authoring](skills/workflow-authoring.md) | Write custom workflows in YAML |
 | [daemon-operations](skills/daemon-operations.md) | Start, monitor, and troubleshoot the daemon |
@@ -28,6 +30,8 @@ cp ~/ao-skills/skills/*.md ~/.claude/commands/
 
 These skills teach AI assistants how to help you with AO. When loaded, your AI can:
 
+- Set up `.mcp.json` to connect AO to Claude Code or other AI tools
+- Configure AO projects, daemon settings, and agent models
 - Set up AO in a new project
 - Create and manage tasks with priorities and dependencies
 - Write workflow YAML with agents, phases, and cron schedules
