@@ -5,11 +5,24 @@ Skills for AI assistants to help developers use the [AO CLI](https://github.com/
 ## Install
 
 ```bash
-# Claude Code
-claude mcp add ao-skills -- cat ~/ao-skills/skills.json
+git clone https://github.com/AudioGenius-ai/ao-skills.git ~/ao-skills
+```
 
-# Or add individual skills to .claude/commands/
+### Add to Claude Code
+```bash
+# Copy the setup command
+cp ~/ao-skills/commands/setup-ao.md ~/.claude/commands/
+
+# Or copy all skills as commands
 cp ~/ao-skills/skills/*.md ~/.claude/commands/
+```
+
+Then run `/setup-ao` in Claude Code to get started.
+
+### Quick Start Prompt
+Paste this to any AI assistant:
+```
+Read all files in ~/ao-skills/skills/ then help me set up AO in this project.
 ```
 
 ## Skills
