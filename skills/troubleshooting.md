@@ -147,3 +147,83 @@ Project local:
 └── workflows/       # Custom YAML overlays
     └── custom.yaml
 ```
+
+## Tasks Marked "Done" But PR Never Merged
+
+The implementation phase may complete successfully, but push/PR phases fail. The task gets marked "done" by the workflow runner even though the code never reached main.
+
+**Detection:** Task status is "done" but `gh pr list --state merged --search "TASK-XXX"` returns nothing.
+
+**Fix in reconciler prompt:**
+```
+Check for tasks marked "done" that have NO merged PR.
+These were marked done prematurely. Set them back to "ready"
+and queue rebase-and-retry.
+```
+
+## Worktrees Have No node_modules
+
+Command phases (`pnpm build`, `pnpm test`, `pnpm lint`) fail in worktrees because `node_modules` doesn't exist. The implementation agent works fine (uses Claude Code file tools, not the build system), but command phases need deps.
+
+**Fix:** Add `install-deps` command phase before any command that needs `node_modules`:
+```yaml
+install-deps:
+  mode: command
+  command:
+    program: pnpm
+    args: ["install"]
+    cwd_mode: task_root
+```
+
+## Reviewer Merges PRs With Failing CI
+
+By default, the reviewer agent doesn't check CI status before merging.
+
+**Fix:** Add to reviewer prompt:
+```
+Before merging, run: gh pr checks <number>
+If checks fail, evaluate: is the failure from THIS PR or pre-existing?
+- If from this PR: queue rework
+- If pre-existing: merge anyway, create a fix task
+- If pending: skip, next cycle picks it up
+```
+
+## Daemon Doesn't Reload YAML Changes
+
+The daemon reads `.ao/workflows/custom.yaml` at startup and compiles it. Changes to the YAML while the daemon is running are NOT picked up.
+
+**Fix:** Always restart the daemon after editing custom.yaml:
+```bash
+ao daemon stop
+ao daemon start --autonomous --auto-run-ready true --pool-size 3
+```
+
+## Tasks Stuck in Infinite Retry Loop
+
+If a task keeps blocking and the planner/reconciler keeps re-enqueuing it, it can waste agent slots forever.
+
+**Detection:** Task version number is very high (>10) and status cycles between ready → blocked.
+
+**Fixes:**
+1. Check `ao.output.tail --task-id TASK-XXX` for the actual error
+2. Check the worktree: `git -C <worktree_path> log --oneline -3`
+3. If the code is committed but push fails: manually push and create PR
+4. If the task is fundamentally stuck: cancel it and create a better-scoped replacement
+5. Add `consecutive_dispatch_failures > 3` skip rule to the planner prompt
+
+## Parallel Agents Cause Merge Conflicts
+
+Multiple agents running in parallel will conflict on shared files (especially `pnpm-lock.yaml`).
+
+**Mitigations:**
+1. Use `rebase-and-retry` workflow — the reviewer queues it for conflicting PRs
+2. Reduce `pool_size` to 1 if conflicts are too frequent
+3. The rebase agent resolves conflicts intelligently (keeps both sides)
+
+## auto_merge and auto_pr Should Be False
+
+If the daemon's `auto_merge` is `true`, it merges PRs without code review. Set both to `false` and let the pr-review phase handle merging:
+
+```bash
+ao daemon config-set --auto-merge false --auto-pr false
+```
