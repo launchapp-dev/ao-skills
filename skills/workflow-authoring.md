@@ -1,20 +1,63 @@
 # Workflow Authoring
 
-Workflows are defined in `.ao/workflows/custom.yaml`. They describe agents, phases, workflow pipelines, and cron schedules.
+Workflows are defined in `.ao/workflows/custom.yaml`. They describe agents, phases, workflow pipelines, cron schedules, and MCP server connections.
 
-## YAML Structure
+## Complete YAML Structure
 
 ```yaml
-# Top-level sections
-agents:        # Agent profiles with system prompts and model config
-phases:        # Phase definitions (agent, command, or gate)
-workflows:     # Pipeline definitions chaining phases
-schedules:     # Cron schedules for recurring workflows
+# Top-level sections (in order)
+tools_allowlist:   # Shell programs command phases can invoke
+mcp_servers:       # External MCP servers available to agents
+agents:            # Agent profiles with system prompts, model, and MCP bindings
+phases:            # Phase definitions (agent, command, or gate)
+workflows:         # Pipeline definitions chaining phases
+schedules:         # Cron schedules for recurring workflows
 ```
+
+## Tools Allowlist
+
+Controls which programs command phases can run. Also controls Claude Code built-in tools.
+
+```yaml
+tools_allowlist:
+  - npm
+  - npx
+  - node
+  - pnpm
+  - git
+  - gh
+  - WebSearch    # Claude Code's web search tool
+  - WebFetch     # Claude Code's web fetch tool
+```
+
+## MCP Servers
+
+Define external MCP servers that agents can connect to. Servers are referenced by name in agent profiles.
+
+```yaml
+mcp_servers:
+  context7:
+    command: npx
+    args: ["-y", "@upstash/context7-mcp"]
+  package-version:
+    command: npx
+    args: ["-y", "mcp-package-version"]
+  sequential-thinking:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+  memory:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-memory"]
+  github:
+    command: npx
+    args: ["-y", "@modelcontextprotocol/server-github"]
+```
+
+See [mcp-servers-for-agents](mcp-servers-for-agents.md) for details.
 
 ## Agents
 
-Agents are AI profiles with a system prompt and model/tool configuration.
+Agent profiles define the AI model, CLI tool, system prompt, and MCP server access.
 
 ```yaml
 agents:
@@ -22,25 +65,42 @@ agents:
     model: claude-sonnet-4-6
     tool: claude
 
-  planner:
-    system_prompt: |
-      You are a planning agent. Break requirements into tasks.
-      Use ao.task.create to create tasks with clear acceptance criteria.
-    model: claude-sonnet-4-6
-    tool: claude
-
   implementer:
     system_prompt: |
-      You implement code changes. Write clean, tested code.
-      Commit your changes with descriptive messages.
+      You implement code changes. Write clean, type-safe code.
+      Commit with descriptive messages. Do not add yourself as author.
     model: claude-sonnet-4-6
     tool: claude
+    mcp_servers: ["ao", "context7"]
 ```
 
-Fields:
-- `system_prompt` — instructions for the agent
-- `model` — LLM model ID (claude-sonnet-4-6, gemini-3.1-pro-preview, etc.)
-- `tool` — CLI tool to use (claude, codex, gemini)
+### Agent Profile Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `system_prompt` | string | Instructions for the agent |
+| `model` | string | LLM model ID (claude-sonnet-4-6, claude-opus-4-6, gemini-3.1-pro-preview) |
+| `tool` | string | CLI tool (claude, codex, gemini) |
+| `mcp_servers` | list | MCP server names this agent can access (e.g. ["ao", "context7"]) |
+| `web_search` | bool | Enable web search capability |
+| `network_access` | bool | Enable network access |
+| `extra_args` | list | Extra CLI arguments passed to the tool |
+| `fallback_models` | list | Models to try if primary fails |
+| `max_attempts` | int | Retry attempts |
+| `max_continuations` | int | Max continuations per phase |
+| `timeout_secs` | int | Agent timeout |
+| `reasoning_effort` | string | Extended thinking level |
+| `tool_policy` | object | Allow/deny tool patterns per agent |
+
+### Model Options
+- `claude-sonnet-4-6` — Claude Sonnet (default, good balance)
+- `claude-opus-4-6` — Claude Opus (highest quality, slower)
+- `gemini-3.1-pro-preview` — Google Gemini (1M context, good for UI/UX)
+
+### Tool Options
+- `claude` — Claude Code CLI
+- `codex` — OpenAI Codex CLI
+- `gemini` — Google Gemini CLI
 
 ## Phases
 
@@ -52,28 +112,36 @@ phases:
   implementation:
     mode: agent
     agent: implementer
-    directive: "Implement the task requirements. Write code, add tests, commit."
+    directive: "Implement the task requirements. Write code, commit."
     capabilities:
       mutates_state: true
 ```
 
 ### Command Phase
-Runs a shell command.
+Runs a shell command. Use for deterministic operations.
 
 ```yaml
-  unit-test:
+  push-branch:
     mode: command
-    directive: "Run the workspace test suite"
+    directive: "Push the current branch to origin"
     command:
-      program: cargo
-      args: ["test", "--workspace"]
-      timeout_secs: 300
+      program: git
+      args: ["push", "-u", "origin", "HEAD"]
+      cwd_mode: task_root       # Run in the worktree, not project root
+      timeout_secs: 60
     output_contract:
       kind: phase_result
       fields:
         exit_code:
           type: integer
 ```
+
+#### cwd_mode (important!)
+
+Controls where the command runs:
+- `project_root` — main repo directory (default)
+- `task_root` — the task's git worktree (**use this for git/build/test commands**)
+- `path` — custom relative path (requires `cwd_path`)
 
 ### Gate Phase
 Requires human or automated approval to proceed.
@@ -89,42 +157,61 @@ Requires human or automated approval to proceed.
 
 ## Workflows
 
-Chain phases into a pipeline. Workflows run sequentially through phases.
+Chain phases into a sequential pipeline.
 
 ```yaml
 workflows:
-  - id: standard
-    name: "Standard Task Workflow"
-    description: "Requirements → Implement → Test → Create PR"
+  - id: scaffold
+    name: "Scaffold Workflow"
+    description: "Implement -> Build -> Push -> PR -> CI -> Review"
     phases:
-      - requirements
       - implementation
-      - unit-test
+      - install-deps
+      - build-check
+      - lint-check
+      - push-branch
       - create-pr
-
-  - id: quick-fix
-    name: "Quick Fix"
-    description: "Skip requirements, go straight to implementation"
-    phases:
-      - implementation
-      - unit-test
-      - create-pr
-```
-
-### Rework Support
-Phases can define rework targets for when a review rejects:
-
-```yaml
-  - id: gated
-    phases:
-      - requirements
-      - implementation
-      - unit-test
-      - code-review:
+      - wait-for-ci
+      - pr-review:
           on_verdict:
             rework:
               target: implementation
-      - create-pr
+```
+
+### Rework Support
+
+Phases can loop back to an earlier phase when a review rejects:
+
+```yaml
+  - pr-review:
+      on_verdict:
+        rework:
+          target: implementation
+```
+
+**Only use rework on agent phases** (like pr-review). Don't put rework on command phases (build-check, lint-check, wait-for-ci) — it creates infinite loops. Let command phases fail cleanly; the PO/auditor will create a fix task.
+
+### Multiple Workflows
+
+Define workflows for different scenarios:
+
+```yaml
+  - id: standard
+    phases: [requirements, implementation, install-deps, build-check, lint-check, push-branch, create-pr, wait-for-ci, pr-review]
+
+  - id: scaffold
+    phases: [implementation, install-deps, build-check, lint-check, push-branch, create-pr, wait-for-ci, pr-review]
+
+  - id: quick-fix
+    phases: [implementation, install-deps, build-check, lint-check, push-branch, create-pr, wait-for-ci, pr-review]
+
+  - id: rework
+    description: "Address reviewer feedback"
+    phases: [address-review, force-push, pr-review]
+
+  - id: rebase-and-retry
+    description: "Rebase conflicting branch"
+    phases: [rebase-on-main, force-push, pr-review]
 ```
 
 ## Cron Schedules
@@ -134,18 +221,18 @@ Run workflows on a recurring schedule.
 ```yaml
 schedules:
   - id: work-planner
-    cron: "*/5 * * * *"        # Every 5 minutes
+    cron: "*/5 * * * *"
     workflow_ref: work-planner
     enabled: true
 
   - id: pr-reviewer
-    cron: "*/5 * * * *"        # Every 5 minutes
+    cron: "*/3 * * * *"
     workflow_ref: pr-reviewer
     enabled: true
 
-  - id: system-monitor
-    cron: "0 * * * *"          # Every hour
-    workflow_ref: system-monitor
+  - id: task-reconciler
+    cron: "2-59/10 * * * *"
+    workflow_ref: task-reconciler
     enabled: true
 ```
 
@@ -153,10 +240,13 @@ Cron expressions use 5-field format: `minute hour day-of-month month day-of-week
 
 Common patterns:
 - `*/5 * * * *` — every 5 minutes
-- `*/15 * * * *` — every 15 minutes
-- `0 * * * *` — every hour at :00
-- `30 */2 * * *` — every 2 hours at :30
-- `@daily` — once per day at midnight
+- `*/3 * * * *` — every 3 minutes
+- `2-59/10 * * * *` — every 10 minutes starting at :02 (staggered)
+- `37 */2 * * *` — every 2 hours at :37
+- `0 */3 * * *` — every 3 hours
+- `0 9 * * 1` — weekly Monday at 9am
+
+**Stagger cron offsets** to avoid multiple agents competing for pool slots at the same time.
 
 ## Workflow Variables
 
@@ -183,41 +273,17 @@ Phases can reference skills that provide additional context:
       - code-review
 ```
 
-## Common Patterns
+## Design Principles
 
-### Autonomous Loop
-```yaml
-agents:
-  work-planner:
-    system_prompt: |
-      Scan tasks, enqueue ready work via ao.queue.enqueue.
+1. **Agent phases for decisions, command phases for execution.** Don't use an agent to run `git push`.
+2. **Always `cwd_mode: task_root`** for commands that need to run in the worktree.
+3. **Always add `install-deps`** before commands that need `node_modules`.
+4. **No rework loops on command phases.** Let them fail; the PO/auditor creates fix tasks.
+5. **Only `pr-review` gets rework.** Reviewer feedback is actionable; build failures are not.
+6. **Stagger cron schedules.** Don't run all crons at the same offset.
+7. **Restart daemon after YAML changes.** The daemon reads YAML once at startup.
+8. **Set `auto_merge: false` and `auto_pr: false`** in daemon config. Let workflows handle merging.
 
-  reconciler:
-    system_prompt: |
-      Fix stale state. Unblock tasks. Clean queue.
+## Complete Example
 
-  pr-reviewer:
-    system_prompt: |
-      Approve and merge PRs. Mark tasks done.
-
-schedules:
-  - {id: work-planner, cron: "*/5 * * * *", workflow_ref: work-planner, enabled: true}
-  - {id: reconciler, cron: "*/5 * * * *", workflow_ref: reconciler, enabled: true}
-  - {id: pr-reviewer, cron: "*/5 * * * *", workflow_ref: pr-reviewer, enabled: true}
-```
-
-### Task Workflow with All Phases
-```yaml
-workflows:
-  - id: standard
-    phases:
-      - requirements
-      - implementation
-      - unit-test
-      - code-review:
-          on_verdict:
-            rework:
-              target: implementation
-      - create-pr
-      - cleanup
-```
+See [workflow-patterns](workflow-patterns.md) for production-ready pipeline examples including QA gates, conflict resolution, CI checks, and stale PR handling.
