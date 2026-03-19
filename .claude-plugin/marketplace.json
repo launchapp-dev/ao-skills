@@ -1,12 +1,14 @@
 {
   "name": "ao-skills",
-  "description": "Skills for using AO — an autonomous agent orchestrator for software development workflows",
+  "owner": {
+    "name": "AudioGenius"
+  },
   "plugins": [
     {
       "name": "ao-skills",
       "description": "Skills for using AO — an autonomous agent orchestrator for software development workflows",
       "version": "1.0.0",
-      "path": "."
+      "source": "./"
     }
   ]
 }
