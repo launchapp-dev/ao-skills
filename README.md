@@ -1,12 +1,12 @@
 # AO Skills
 
-A Claude Code plugin with skills for using [AO](https://github.com/AudioGenius-ai/ao-cli) — an autonomous agent orchestrator for software development workflows.
+A Claude Code plugin with skills for using [AO](https://github.com/launchapp-dev/ao-cli) — an autonomous agent orchestrator for software development workflows.
 
 ## Install
 
 ### From Marketplace
 ```bash
-/plugin marketplace add AudioGenius-ai/ao-skills
+/plugin marketplace add launchapp-dev/ao-skills
 ```
 
 ### From Local Directory
@@ -16,7 +16,7 @@ claude --plugin-dir ~/ao-skills
 
 Or clone and point to it:
 ```bash
-git clone https://github.com/AudioGenius-ai/ao-skills.git ~/ao-skills
+git clone https://github.com/launchapp-dev/ao-skills.git ~/ao-skills
 claude --plugin-dir ~/ao-skills
 ```
 

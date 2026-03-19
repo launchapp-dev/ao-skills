@@ -2,7 +2,7 @@
   "name": "ao-skills",
   "version": "1.0.0",
   "description": "Skills for using AO — an autonomous agent orchestrator for software development workflows",
-  "author": { "name": "launchapp" },
-  "homepage": "https://github.com/AudioGenius-ai/ao-skills",
+  "author": { "name": "launchapp.dev" },
+  "homepage": "https://github.com/launchapp-dev/ao-skills",
   "skills_path": "skills"
 }

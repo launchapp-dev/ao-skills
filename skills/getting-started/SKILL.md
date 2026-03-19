@@ -20,7 +20,7 @@ AO is a Rust-based agent orchestrator that manages autonomous software developme
 
 ```bash
 # Clone and build
-git clone https://github.com/AudioGenius-ai/ao-cli.git
+git clone https://github.com/launchapp-dev/ao-cli.git
 cd ao-cli
 cargo build -p orchestrator-cli
 
