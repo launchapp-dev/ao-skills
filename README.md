@@ -1,72 +1,62 @@
 # AO Skills
 
-Skills for AI assistants to help developers use the [AO CLI](https://github.com/AudioGenius-ai/ao-cli) — an agent orchestrator for autonomous software development.
+A Claude Code plugin with skills for using [AO](https://github.com/AudioGenius-ai/ao-cli) — an autonomous agent orchestrator for software development workflows.
 
 ## Install
 
+### From Marketplace
+```bash
+/plugin marketplace add AudioGenius-ai/ao-skills
+```
+
+### From Local Directory
+```bash
+claude --plugin-dir ~/ao-skills
+```
+
+Or clone and point to it:
 ```bash
 git clone https://github.com/AudioGenius-ai/ao-skills.git ~/ao-skills
+claude --plugin-dir ~/ao-skills
 ```
 
-### Add to Claude Code
-```bash
-# Copy the setup command
-cp ~/ao-skills/commands/setup-ao.md ~/.claude/commands/
+## Slash Commands
 
-# Or copy all skills as commands
-cp ~/ao-skills/skills/*.md ~/.claude/commands/
-```
+| Command | Description |
+|---------|-------------|
+| `/setup-ao` | Set up AO in the current project — init, MCP, first workflow |
+| `/getting-started` | Install AO, core concepts, first task and workflow |
+| `/mcp-setup` | Create `.mcp.json` and connect AI tools to AO |
+| `/workflow-authoring` | Write custom workflow YAML — agents, phases, crons |
+| `/pack-authoring` | Build workflow packs — manifest, agents, phases, marketplace |
+| `/skill-authoring` | Build AO skills — prompts, tool policies, capabilities |
+| `/troubleshooting` | Common AO issues and fixes |
 
-Then run `/setup-ao` in Claude Code to get started.
+## Auto-Invoked Reference Skills
 
-### Quick Start Prompt
-Paste this to any AI assistant:
-```
-Read all files in ~/ao-skills/skills/ then help me set up AO in this project.
-```
+These skills are automatically loaded by Claude when contextually relevant:
 
-## Skills
-
-### Getting Started
 | Skill | Description |
 |-------|-------------|
-| [getting-started](skills/getting-started.md) | Install AO, create first task, run first workflow |
-| [mcp-setup](skills/mcp-setup.md) | Set up `.mcp.json`, Claude Code permissions, connect AI tools |
-| [configuration](skills/configuration.md) | Project config, daemon config, agent runtime, state layout |
-
-### Core Operations
-| Skill | Description |
-|-------|-------------|
-| [task-management](skills/task-management.md) | Full task lifecycle via CLI and MCP |
-| [workflow-authoring](skills/workflow-authoring.md) | Write custom workflows in YAML |
-| [daemon-operations](skills/daemon-operations.md) | Start, monitor, and troubleshoot the daemon |
-| [queue-management](skills/queue-management.md) | Dispatch queue operations |
-| [mcp-tools](skills/mcp-tools.md) | Complete MCP tool reference with examples |
-
-### Production Patterns (new)
-| Skill | Description |
-|-------|-------------|
-| [workflow-patterns](skills/workflow-patterns.md) | Battle-tested pipeline patterns: QA gates, command phases, conflict resolution, CI checks |
-| [agent-personas](skills/agent-personas.md) | Product lifecycle agents: PO, architect, auditor, docs-writer, devops, researcher |
-| [mcp-servers-for-agents](skills/mcp-servers-for-agents.md) | Connect agents to Context7, package-version, sequential-thinking, memory, GitHub |
-
-### Debugging
-| Skill | Description |
-|-------|-------------|
-| [troubleshooting](skills/troubleshooting.md) | Common issues and fixes |
+| configuration | Project config, daemon config, agent runtime, state layout |
+| task-management | Full task lifecycle — create, list, update, block/unblock |
+| daemon-operations | Start, monitor, and troubleshoot the daemon |
+| queue-management | Dispatch queue operations |
+| mcp-tools | Complete `ao.*` MCP tool reference |
+| workflow-patterns | Battle-tested pipeline patterns from 150+ autonomous PRs |
+| agent-personas | Product lifecycle agents — PO, architect, auditor, docs-writer |
+| mcp-servers-for-agents | Connect agents to Context7, package-version, memory, GitHub |
+| pack-authoring | Build workflow packs with pack.toml, agent overlays, MCP descriptors |
+| skill-authoring | Build AO skills with YAML definitions, tool policies, adapters |
 
 ## Usage
 
-These skills teach AI assistants how to help you with AO. When loaded, your AI can:
+Once installed, Claude can help you:
 
-- Set up `.mcp.json` to connect AO to Claude Code or other AI tools
-- Configure AO projects, daemon settings, and agent models
-- Set up AO in a new project
-- Create and manage tasks with priorities and dependencies
-- Write workflow YAML with agents, phases, and cron schedules
-- Start and monitor the autonomous daemon
-- Debug workflow failures and daemon crashes
-- Use all `ao.*` MCP tools correctly
-- Build production-ready pipelines with QA gates, conflict resolution, and CI checks
-- Configure persona agents (product owner, architect, auditor) for full product lifecycle management
-- Connect agents to external MCP servers for docs, version checking, and structured reasoning
+- **Set up AO**: `/setup-ao` walks through project init, MCP config, and first workflow
+- **Write workflows**: Ask Claude to create a `custom.yaml` — it knows the full YAML schema
+- **Manage tasks**: Claude can create, prioritize, and enqueue tasks via MCP tools
+- **Debug issues**: `/troubleshooting` covers daemon crashes, workflow failures, queue problems
+- **Configure agents**: Claude knows how to set up persona agents for the full product lifecycle
+- **Build packs**: `/pack-authoring` guides you through creating installable workflow packs
+- **Build skills**: `/skill-authoring` covers creating reusable agent behavior definitions

@@ -1,3 +1,10 @@
+---
+name: configuration
+description: AO project config, daemon config, agent runtime, environment variables, and state layout
+user_invocable: false
+auto_invoke: true
+---
+
 # AO Configuration
 
 AO has three layers of configuration: project config, daemon config, and workflow config.
@@ -46,7 +53,7 @@ MCP: `ao.daemon.config-set`
 
 ## Workflow Config (`.ao/workflows/custom.yaml`)
 
-Hand-edited YAML. Defines agents, phases, workflows, and cron schedules. See the [workflow-authoring](workflow-authoring.md) skill for full details.
+Hand-edited YAML. Defines agents, phases, workflows, and cron schedules. See the [workflow-authoring](../workflow-authoring/SKILL.md) skill for full details.
 
 Location: `.ao/workflows/custom.yaml` (checked into git)
 
@@ -79,6 +86,7 @@ Location: `~/.ao/<repo-scope>/config/agent-runtime-config.v2.json`
 - `claude` — Claude Code CLI
 - `codex` — OpenAI Codex CLI
 - `gemini` — Google Gemini CLI
+- `oai-runner` — OpenAI-compatible model runner
 
 ## Environment Variables
 

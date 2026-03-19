@@ -1,3 +1,10 @@
+---
+name: queue-management
+description: Dispatch queue operations — enqueue, hold, release, drop, reorder, and queue patterns
+user_invocable: false
+auto_invoke: true
+---
+
 # Queue Management
 
 The dispatch queue controls what work the daemon picks up next. Tasks are enqueued, assigned to agents, and removed on completion.

@@ -1,3 +1,10 @@
+---
+name: mcp-servers-for-agents
+description: Connect agents to Context7, package-version, sequential-thinking, memory, GitHub MCP servers
+user_invocable: false
+auto_invoke: true
+---
+
 # MCP Servers for AO Agents
 
 AO agents can connect to external MCP servers beyond the built-in `ao` server. This gives agents access to documentation lookup, package version checking, structured reasoning, persistent memory, and GitHub operations.

@@ -1,3 +1,10 @@
+---
+name: mcp-setup
+description: Set up .mcp.json, Claude Code permissions, and connect AI tools to AO's MCP server
+user_invocable: true
+auto_invoke: true
+---
+
 # MCP Server Setup
 
 AO exposes all its operations as an MCP (Model Context Protocol) server. This lets any MCP-aware AI assistant (Claude Code, etc.) use AO tools directly.
@@ -65,12 +72,12 @@ Once connected, the assistant gets access to:
 
 | Prefix | Tools | Purpose |
 |--------|-------|---------|
-| `ao.task.*` | 14 tools | Task CRUD, status, checklists, bulk ops |
+| `ao.task.*` | 20 tools | Task CRUD, status, assign, checklists, bulk ops, priorities, deadlines |
 | `ao.queue.*` | 7 tools | Dispatch queue management |
 | `ao.daemon.*` | 11 tools | Daemon lifecycle and monitoring |
-| `ao.workflow.*` | 10+ tools | Workflow execution and inspection |
-| `ao.output.*` | 5 tools | Run output, artifacts, monitoring |
-| `ao.requirements.*` | 5 tools | Requirement management |
+| `ao.workflow.*` | 15+ tools | Workflow execution, phases, config, checkpoints |
+| `ao.output.*` | 6 tools | Run output, tail, monitor, artifacts |
+| `ao.requirements.*` | 6 tools | Requirement CRUD and refinement |
 | `ao.runner.*` | 3 tools | Runner health and diagnostics |
 | `ao.agent.*` | 3 tools | Agent control and status |
 

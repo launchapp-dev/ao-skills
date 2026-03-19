@@ -1,3 +1,10 @@
+---
+name: setup-ao
+description: Set up AO in the current project — initialize config, connect MCP, create first workflow
+user_invocable: true
+auto_invoke: false
+---
+
 You are setting up AO — an autonomous agent orchestrator — in this project.
 
 ## Step 1: Read the AO skills

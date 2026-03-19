@@ -1,3 +1,10 @@
+---
+name: troubleshooting
+description: Common AO issues and fixes — daemon crashes, workflow failures, queue problems, merge conflicts
+user_invocable: true
+auto_invoke: true
+---
+
 # Troubleshooting AO
 
 ## Daemon Won't Start

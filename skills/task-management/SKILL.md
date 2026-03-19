@@ -1,3 +1,10 @@
+---
+name: task-management
+description: Full task lifecycle — create, list, update, block/unblock, checklists, bulk ops via CLI and MCP
+user_invocable: false
+auto_invoke: true
+---
+
 # Task Management
 
 ## Task Lifecycle
@@ -5,6 +12,7 @@
 ```
 backlog → ready → in-progress → done
                 ↘ blocked → ready (when unblocked)
+                ↘ on-hold → ready (when released)
                 ↘ cancelled
 ```
 
@@ -18,7 +26,7 @@ ao task create --title "Add dark mode" --priority medium --type feature --descri
 
 Options:
 - `--priority`: critical, high, medium, low
-- `--type`: feature, bugfix, refactor, test, chore, docs, experiment
+- `--type`: feature, bugfix, hotfix, refactor, test, chore, docs, experiment
 - `--description`: detailed description
 - `--tags`: comma-separated tags
 
@@ -42,10 +50,29 @@ ao task status --id TASK-001 --status ready
 ao task status --id TASK-001 --status in-progress
 ao task status --id TASK-001 --status done
 ao task status --id TASK-001 --status blocked
+ao task status --id TASK-001 --status on-hold
 ao task status --id TASK-001 --status cancelled
 ```
 
 Setting `ready` clears `paused`, `blocked_at`, `blocked_reason`, and `blocked_by`.
+
+### Pause / Resume
+```bash
+ao task pause --id TASK-001
+ao task resume --id TASK-001
+```
+
+### Cancel / Reopen
+```bash
+ao task cancel --id TASK-001
+ao task reopen --id TASK-001    # reopens from terminal state back to backlog
+```
+
+### Set Priority / Deadline
+```bash
+ao task set-priority --id TASK-001 --priority critical
+ao task set-deadline --id TASK-001 --deadline "2026-04-01T00:00:00Z"
+```
 
 ### Update Content
 ```bash
@@ -71,6 +98,8 @@ ao task bulk-status --ids TASK-001,TASK-002,TASK-003 --status cancelled
 | `ao.task.get` | Get task details by ID |
 | `ao.task.list` | List tasks, filter by status |
 | `ao.task.update` | Update task title/description |
+| `ao.task.delete` | Delete a task |
+| `ao.task.assign` | Assign a task to an agent or human |
 | `ao.task.status` | Change task status |
 | `ao.task.stats` | Aggregate task metrics |
 | `ao.task.prioritized` | Get tasks sorted by priority |
@@ -78,8 +107,13 @@ ao task bulk-status --ids TASK-001,TASK-002,TASK-003 --status cancelled
 | `ao.task.checklist-add` | Add a checklist item |
 | `ao.task.checklist-update` | Mark checklist item complete/incomplete |
 | `ao.task.bulk-status` | Update multiple task statuses at once |
+| `ao.task.bulk-update` | Bulk update multiple tasks |
+| `ao.task.pause` | Pause a task |
+| `ao.task.resume` | Resume a paused task |
 | `ao.task.cancel` | Cancel a task |
-| `ao.task.history` | View task state change history |
+| `ao.task.set-priority` | Set task priority |
+| `ao.task.set-deadline` | Set or clear task deadline |
+| `ao.task.history` | View task dispatch history |
 
 ### MCP Examples
 

@@ -1,3 +1,10 @@
+---
+name: daemon-operations
+description: Start, stop, monitor the AO daemon — health checks, events, logs, pool sizing, common issues
+user_invocable: false
+auto_invoke: true
+---
+
 # Daemon Operations
 
 The AO daemon is a background process that dispatches workflows from the queue, manages agent processes, and runs cron schedules.
@@ -16,14 +23,22 @@ ao daemon start --autonomous --auto-run-ready true --pool-size 5 --interval-secs
 
 Options:
 - `--autonomous` — fork to background, detach from terminal
-- `--auto-run-ready true` — automatically dispatch ready tasks from queue
-- `--pool-size N` — max concurrent agent workflows (default: 2)
-- `--interval-secs N` — tick interval in seconds (default: 15)
+- `--auto-run-ready true` — automatically dispatch ready tasks from queue (default: true)
+- `--pool-size N` — max concurrent agent workflows
+- `--interval-secs N` — housekeeping timer interval in seconds (default: 5)
 - `--auto-merge true` — auto-merge approved PRs
 - `--auto-commit-before-merge true` — commit worktree changes before merge
+- `--startup-cleanup` — run cleanup before scheduling (default: true)
+- `--resume-interrupted` — resume interrupted workflows (default: true)
+- `--reconcile-stale` — reconcile stale task/workflow state (default: true)
+- `--stale-threshold-hours N` — flag in-progress tasks as stale after N hours (default: 24)
+- `--max-tasks-per-tick N` — max new workflows to dispatch per tick (default: 2)
+- `--phase-timeout-secs N` — override phase timeout
+- `--idle-timeout-secs N` — override workflow idle timeout
+- `--skip-runner` — do not auto-start the runner process
 
 ### Pool Size Guidance
-- **pool_size=2**: minimal, may starve cron workflows
+- **pool_size=2**: minimal, may starve cron workflows (also the default `--max-tasks-per-tick`)
 - **pool_size=5**: good default — 3 crons + 2 task workflows
 - **pool_size=8**: heavy workload, needs sufficient API quota
 
@@ -78,6 +93,7 @@ Graceful shutdown with 60-second timeout. Running workflows are cancelled.
 | `ao.daemon.agents` | List active agent processes |
 | `ao.daemon.config` | Read daemon config |
 | `ao.daemon.config-set` | Update daemon config |
+| `ao.daemon.clear-logs` | Clear log file |
 | `ao.daemon.pause` | Pause dispatch |
 | `ao.daemon.resume` | Resume dispatch |
 

@@ -1,3 +1,10 @@
+---
+name: workflow-authoring
+description: Write custom workflow YAML — agents, phases, pipelines, cron schedules, MCP server connections
+user_invocable: true
+auto_invoke: true
+---
+
 # Workflow Authoring
 
 Workflows are defined in `.ao/workflows/custom.yaml`. They describe agents, phases, workflow pipelines, cron schedules, and MCP server connections.
@@ -53,7 +60,7 @@ mcp_servers:
     args: ["-y", "@modelcontextprotocol/server-github"]
 ```
 
-See [mcp-servers-for-agents](mcp-servers-for-agents.md) for details.
+See [mcp-servers-for-agents](../mcp-servers-for-agents/SKILL.md) for details.
 
 ## Agents
 
@@ -78,9 +85,11 @@ agents:
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `description` | string | Agent description |
 | `system_prompt` | string | Instructions for the agent |
+| `role` | string | Agent role identifier |
 | `model` | string | LLM model ID (claude-sonnet-4-6, claude-opus-4-6, gemini-3.1-pro-preview) |
-| `tool` | string | CLI tool (claude, codex, gemini) |
+| `tool` | string | CLI tool (claude, codex, gemini, oai-runner) |
 | `mcp_servers` | list | MCP server names this agent can access (e.g. ["ao", "context7"]) |
 | `web_search` | bool | Enable web search capability |
 | `network_access` | bool | Enable network access |
@@ -89,8 +98,12 @@ agents:
 | `max_attempts` | int | Retry attempts |
 | `max_continuations` | int | Max continuations per phase |
 | `timeout_secs` | int | Agent timeout |
-| `reasoning_effort` | string | Extended thinking level |
-| `tool_policy` | object | Allow/deny tool patterns per agent |
+| `reasoning_effort` | string | Extended thinking level (low, medium, high) |
+| `tool_policy` | object | Allow/deny glob patterns per agent |
+| `skills` | list | Skill identifiers for additional context |
+| `capabilities` | object | Boolean capability flags |
+| `project_overrides` | object | Per-project tool/model/args overrides |
+| `codex_config_overrides` | object | Codex-specific configuration overrides |
 
 ### Model Options
 - `claude-sonnet-4-6` — Claude Sonnet (default, good balance)
@@ -101,6 +114,7 @@ agents:
 - `claude` — Claude Code CLI
 - `codex` — OpenAI Codex CLI
 - `gemini` — Google Gemini CLI
+- `oai-runner` — OpenAI-compatible model runner
 
 ## Phases
 
@@ -139,19 +153,20 @@ Runs a shell command. Use for deterministic operations.
 #### cwd_mode (important!)
 
 Controls where the command runs:
-- `project_root` — main repo directory (default)
-- `task_root` — the task's git worktree (**use this for git/build/test commands**)
+- `task_root` — the task's git worktree (default — **use this for git/build/test commands**)
+- `project_root` — main repo directory
 - `path` — custom relative path (requires `cwd_path`)
 
-### Gate Phase
-Requires human or automated approval to proceed.
+### Manual Phase
+Requires human approval to proceed.
 
 ```yaml
   review-gate:
-    mode: gate
+    mode: manual
     directive: "Code review must pass before merge"
-    gate:
-      auto_approve: false
+    manual:
+      instructions: "Review the code changes and approve or reject"
+      approval_note_required: false
       timeout_secs: 86400
 ```
 
@@ -286,4 +301,4 @@ Phases can reference skills that provide additional context:
 
 ## Complete Example
 
-See [workflow-patterns](workflow-patterns.md) for production-ready pipeline examples including QA gates, conflict resolution, CI checks, and stale PR handling.
+See [workflow-patterns](../workflow-patterns/SKILL.md) for production-ready pipeline examples including QA gates, conflict resolution, CI checks, and stale PR handling.

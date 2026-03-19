@@ -1,3 +1,10 @@
+---
+name: workflow-patterns
+description: Battle-tested pipeline patterns — QA gates, command phases, conflict resolution, CI checks, stale PR handling
+user_invocable: false
+auto_invoke: true
+---
+
 # Workflow Patterns — Production-Ready Pipelines
 
 Battle-tested patterns from building a full SaaS monorepo with AO. These patterns address real issues discovered over 150+ autonomous PRs.
@@ -90,18 +97,18 @@ workflows:
 
 ## Critical: cwd_mode for Command Phases
 
-**This is the #1 gotcha.** Command phases default to `cwd_mode: project_root`, which runs the command in the main repo — NOT in the task's worktree. Every command that needs to run in the worktree (push, PR create, build, install) MUST have:
+**This is the #1 gotcha.** While `cwd_mode` defaults to `task_root`, it's best practice to always set it explicitly for clarity. If you accidentally override it to `project_root`, the command runs in the main repo — NOT in the task's worktree.
 
 ```yaml
 command:
-  cwd_mode: task_root
+  cwd_mode: task_root    # default, but be explicit
 ```
 
 Without this, `git push` pushes from `main` (nothing to push), `gh pr create` sees no branch, and `pnpm build` may use stale code.
 
 ### cwd_mode options:
-- `project_root` — main repo directory (default)
-- `task_root` — the task's git worktree (what you almost always want)
+- `task_root` — the task's git worktree (default — what you almost always want)
+- `project_root` — main repo directory
 - `path` — custom relative path (requires `cwd_path`)
 
 ## Why Command Phases Over Agent Phases for Git/PR

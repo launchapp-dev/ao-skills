@@ -1,3 +1,10 @@
+---
+name: agent-personas
+description: Product lifecycle agents — product owner, architect, auditor, docs-writer, devops, researcher personas
+user_invocable: false
+auto_invoke: true
+---
+
 # Agent Personas — Beyond Code Delivery
 
 AO agents can do more than write code. This skill covers persona agents that manage the full product lifecycle: planning, reviewing, auditing, documenting, and improving.

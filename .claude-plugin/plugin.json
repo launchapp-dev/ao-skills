@@ -1,0 +1,8 @@
+{
+  "name": "ao-skills",
+  "version": "1.0.0",
+  "description": "Skills for using AO — an autonomous agent orchestrator for software development workflows",
+  "author": "AudioGenius",
+  "homepage": "https://github.com/AudioGenius-ai/ao-skills",
+  "skills_path": "skills"
+}

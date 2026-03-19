@@ -1,3 +1,10 @@
+---
+name: getting-started
+description: Install AO, create first task, run first workflow — core concepts and project structure
+user_invocable: true
+auto_invoke: true
+---
+
 # Getting Started with AO
 
 AO is a Rust-based agent orchestrator that manages autonomous software development workflows. It coordinates AI agents (Claude, Codex, Gemini) to implement tasks, run tests, create PRs, and review code.
@@ -96,6 +103,7 @@ ao.task.list      — list tasks by status
 ao.queue.enqueue  — add work to the dispatch queue
 ao.daemon.health  — check daemon status
 ao.workflow.run   — trigger a workflow manually
+ao.output.tail    — read agent output
 ```
 
 ## Project Structure
