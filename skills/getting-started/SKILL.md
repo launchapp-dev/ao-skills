@@ -11,7 +11,6 @@ AO is a Rust-based agent orchestrator that manages autonomous software developme
 
 ## Prerequisites
 
-- Rust toolchain (`rustup`, `cargo`)
 - Git
 - GitHub CLI (`gh`) authenticated
 - At least one AI CLI tool: `claude` (Claude Code), `codex`, or `gemini`
@@ -19,15 +18,16 @@ AO is a Rust-based agent orchestrator that manages autonomous software developme
 ## Install
 
 ```bash
-# Clone and build
-git clone https://github.com/launchapp-dev/ao-cli.git
-cd ao-cli
-cargo build -p orchestrator-cli
+# One-line install (macOS/Linux)
+curl -fsSL https://raw.githubusercontent.com/launchapp-dev/ao/main/install.sh | bash
 
-# The binary is at ./target/debug/ao
-# Optionally add to PATH:
-export PATH="$PWD/target/debug:$PATH"
+# Or install a specific version
+AO_VERSION=v0.0.11 curl -fsSL https://raw.githubusercontent.com/launchapp-dev/ao/main/install.sh | bash
 ```
+
+This installs `ao`, `agent-runner`, and `llm-cli-wrapper` to `~/.local/bin`.
+
+Verify: `ao --version`
 
 ## Initialize a Project
 
