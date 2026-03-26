@@ -75,15 +75,15 @@ Once connected, the assistant gets access to:
 | `ao.task.*` | 20 tools | Task CRUD, status, assign, checklists, bulk ops, priorities, deadlines |
 | `ao.queue.*` | 7 tools | Dispatch queue management |
 | `ao.daemon.*` | 11 tools | Daemon lifecycle and monitoring |
-| `ao.workflow.*` | 15+ tools | Workflow execution, phases, config, checkpoints |
+| `ao.workflow.*` | 16 tools | Workflow execution, phases, config, checkpoints |
 | `ao.output.*` | 6 tools | Run output, tail, monitor, artifacts |
 | `ao.requirements.*` | 6 tools | Requirement CRUD and refinement |
-| `ao.runner.*` | 3 tools | Runner health and diagnostics |
+| `ao.runner.*` | 4 tools | Runner health and diagnostics |
 | `ao.agent.*` | 3 tools | Agent control and status |
 
 ## Claude Code Settings
 
-To auto-approve AO MCP tools (avoid permission prompts), add to `.claude/settings.local.json`:
+To auto-approve AO MCP tools, add to `.claude/settings.local.json`. If your MCP server name is `ao`, Claude Code tool ids look like `mcp__ao__ao_task_list`.
 
 ```json
 {
@@ -97,6 +97,7 @@ To auto-approve AO MCP tools (avoid permission prompts), add to `.claude/setting
       "mcp__ao__ao_daemon_logs",
       "mcp__ao__ao_daemon_agents",
       "mcp__ao__ao_daemon_config",
+      "mcp__ao__ao_daemon_config_set",
       "mcp__ao__ao_task_list",
       "mcp__ao__ao_task_get",
       "mcp__ao__ao_task_create",
@@ -112,7 +113,10 @@ To auto-approve AO MCP tools (avoid permission prompts), add to `.claude/setting
       "mcp__ao__ao_workflow_run",
       "mcp__ao__ao_workflow_get",
       "mcp__ao__ao_output_tail",
-      "mcp__ao__ao_runner_health"
+      "mcp__ao__ao_output_run",
+      "mcp__ao__ao_output_phase_outputs",
+      "mcp__ao__ao_runner_health",
+      "mcp__ao__ao_runner_orphans_detect"
     ]
   },
   "enableAllProjectMcpServers": true
@@ -164,3 +168,7 @@ The server speaks the MCP protocol (JSON-RPC 2.0 over stdio).
 ### "project_root" errors
 - Ensure `--project-root` points to a directory with `.ao/` or a git repo
 - Use absolute paths, not relative
+
+### Tool mismatch or missing methods
+- Compare against the current MCP surface in `docs/reference/mcp-tools.md`
+- Restart the client after upgrading `ao`; most clients cache the tool list for the session

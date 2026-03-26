@@ -18,14 +18,10 @@ AO is a Rust-based agent orchestrator that manages autonomous software developme
 ## Install
 
 ```bash
-# One-line install (macOS/Linux)
-curl -fsSL https://raw.githubusercontent.com/launchapp-dev/ao/main/install.sh | bash
-
-# Or install a specific version
-AO_VERSION=v0.0.11 curl -fsSL https://raw.githubusercontent.com/launchapp-dev/ao/main/install.sh | bash
+# From a local source checkout
+cd /path/to/ao-cli
+cargo install --path crates/orchestrator-cli --bin ao
 ```
-
-This installs `ao`, `agent-runner`, and `llm-cli-wrapper` to `~/.local/bin`.
 
 Verify: `ao --version`
 
@@ -38,7 +34,8 @@ ao setup
 
 This creates:
 - `.ao/config.json` — project-level AO config
-- `.ao/workflows/` — directory for custom workflow YAML
+- `.ao/pm-config.json` — project daemon config
+- `.ao/workflows.yaml` and `.ao/workflows/` — workflow sources
 
 ## Core Concepts
 
@@ -46,7 +43,7 @@ This creates:
 Units of work. Each task has an ID (TASK-001), title, status, priority, and type.
 
 ```bash
-ao task create --title "Add user authentication" --priority high --type feature
+ao task create --title "Add user authentication" --priority high --task-type feature
 ao task list --status ready
 ao task status --id TASK-001 --status in-progress
 ```
@@ -64,6 +61,7 @@ Background process that continuously dispatches workflows from a queue.
 ```bash
 ao daemon start --autonomous --auto-run-ready true --pool-size 3
 ao daemon health
+ao daemon stream --pretty
 ao daemon stop
 ```
 
@@ -80,7 +78,7 @@ ao queue stats
 
 ```bash
 # Create a task
-ao task create --title "Add health check endpoint" --priority high --type feature
+ao task create --title "Add health check endpoint" --priority high --task-type feature
 
 # Enqueue it
 ao queue enqueue --task-id TASK-001
@@ -91,6 +89,7 @@ ao daemon start --autonomous --auto-run-ready true --pool-size 2
 # Watch it work
 ao daemon health
 ao queue list
+ao daemon stream --pretty
 ```
 
 ## MCP Integration
@@ -106,19 +105,29 @@ ao.workflow.run   — trigger a workflow manually
 ao.output.tail    — read agent output
 ```
 
+For live CLI-side observability outside MCP, use:
+
+```bash
+ao daemon stream --pretty
+ao output monitor --run-id <run-id>
+```
+
 ## Project Structure
 
 ```
 your-project/
 ├── .ao/
-│   ├── config.json              # Project config
+│   ├── config.json
+│   ├── pm-config.json
+│   ├── workflows.yaml
 │   └── workflows/
-│       └── custom.yaml          # Custom workflow definitions
-└── ~/.ao/<repo-scope>/          # Runtime state (auto-managed)
-    ├── config/                  # Compiled workflow + agent config
-    ├── daemon/                  # Daemon PID, lock, logs
-    ├── scheduler/               # Dispatch queue
-    ├── state/                   # Task state, schedule state
-    ├── runs/                    # Workflow run output
-    └── worktrees/               # Git worktrees for task branches
+│       └── custom.yaml
+└── ~/.ao/<repo-scope>/          # Repo-scoped runtime state
+    ├── core-state.json
+    ├── resume-config.json
+    ├── tasks/
+    ├── requirements/
+    ├── runs/
+    ├── artifacts/
+    └── worktrees/
 ```

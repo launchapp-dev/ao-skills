@@ -7,18 +7,18 @@ auto_invoke: true
 
 # Workflow Authoring
 
-Workflows are defined in `.ao/workflows/custom.yaml`. They describe agents, phases, workflow pipelines, cron schedules, and MCP server connections.
+Project-authored workflow sources live in `.ao/workflows.yaml` and `.ao/workflows/*.yaml`. They describe agents, phases, workflow pipelines, schedules, and MCP server connections.
 
 ## Complete YAML Structure
 
 ```yaml
-# Top-level sections (in order)
+# Common top-level sections
 tools_allowlist:   # Shell programs command phases can invoke
 mcp_servers:       # External MCP servers available to agents
 agents:            # Agent profiles with system prompts, model, and MCP bindings
-phases:            # Phase definitions (agent, command, or gate)
+phases:            # Phase definitions
 workflows:         # Pipeline definitions chaining phases
-schedules:         # Cron schedules for recurring workflows
+schedules:         # Recurring workflows
 ```
 
 ## Tools Allowlist
@@ -193,6 +193,8 @@ workflows:
               target: implementation
 ```
 
+Workflow refs are selected with `ao workflow run --workflow-ref <ref>` or `ao queue enqueue --workflow-ref <ref>`.
+
 ### Rework Support
 
 Phases can loop back to an earlier phase when a review rejects:
@@ -258,6 +260,17 @@ Common patterns:
 - `*/3 * * * *` — every 3 minutes
 - `2-59/10 * * * *` — every 10 minutes starting at :02 (staggered)
 - `37 */2 * * *` — every 2 hours at :37
+
+## Validation
+
+Validate and inspect the effective config before restarting the daemon:
+
+```bash
+ao workflow config validate
+ao workflow config compile
+ao workflow definitions list
+ao workflow phases list
+```
 - `0 */3 * * *` — every 3 hours
 - `0 9 * * 1` — weekly Monday at 9am
 

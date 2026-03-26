@@ -28,20 +28,20 @@ ao.agent.*      — agent control
 
 | Tool | Input | Purpose |
 |------|-------|---------|
-| `ao.task.create` | `{title, priority?, type?, description?}` | Create a task |
+| `ao.task.create` | `{title, description?, priority?, task_type?, linked_requirement[]?}` | Create a task |
 | `ao.task.get` | `{id}` | Get task details |
-| `ao.task.list` | `{status?, type?, priority?, search?, sort?, limit?}` | List tasks with filters |
-| `ao.task.update` | `{id, title?, description?}` | Update task content |
+| `ao.task.list` | `{status?, task_type?, priority?, risk?, search?, limit?, offset?}` | List tasks with filters |
+| `ao.task.update` | `{id, title?, description?, priority?, status?, assignee?}` | Update task content |
 | `ao.task.delete` | `{id}` | Delete a task |
-| `ao.task.assign` | `{id, assignee_type?, agent_role?}` | Assign task to agent or human |
+| `ao.task.assign` | `{id, assignee, assignee_type?, agent_role?, model?}` | Assign task to agent or human |
 | `ao.task.status` | `{id, status}` | Change task status |
 | `ao.task.stats` | `{}` | Aggregate metrics |
 | `ao.task.prioritized` | `{}` | Tasks sorted by priority |
 | `ao.task.next` | `{}` | Next recommended task |
-| `ao.task.checklist-add` | `{id, item}` | Add checklist item |
-| `ao.task.checklist-update` | `{id, index, completed}` | Toggle checklist |
-| `ao.task.bulk-status` | `{ids, status}` | Bulk status update |
-| `ao.task.bulk-update` | `{ids, ...fields}` | Bulk update multiple tasks |
+| `ao.task.checklist-add` | `{id, description}` | Add checklist item |
+| `ao.task.checklist-update` | `{id, item_id, completed}` | Toggle checklist |
+| `ao.task.bulk-status` | `{updates[]}` | Bulk status update |
+| `ao.task.bulk-update` | `{updates[]}` | Bulk update multiple tasks |
 | `ao.task.pause` | `{id}` | Pause a task |
 | `ao.task.resume` | `{id}` | Resume a paused task |
 | `ao.task.cancel` | `{id}` | Cancel a task |
@@ -65,7 +65,7 @@ ao.agent.*      — agent control
 
 | Tool | Input | Purpose |
 |------|-------|---------|
-| `ao.daemon.start` | `{autonomous?, pool_size?, interval_secs?, auto_run_ready?}` | Start daemon |
+| `ao.daemon.start` | `{autonomous?, pool_size?, interval_secs?, auto_run_ready?, max_tasks_per_tick?}` | Start daemon |
 | `ao.daemon.stop` | `{}` | Stop daemon |
 | `ao.daemon.status` | `{}` | Running/stopped |
 | `ao.daemon.health` | `{}` | Detailed health |
@@ -73,7 +73,7 @@ ao.agent.*      — agent control
 | `ao.daemon.logs` | `{limit?}` | Read log file |
 | `ao.daemon.agents` | `{}` | Active agents |
 | `ao.daemon.config` | `{}` | Read config |
-| `ao.daemon.config-set` | `{key, value}` | Update config |
+| `ao.daemon.config-set` | `{pool_size?, auto_run_ready?, auto_merge?, auto_pr?}` | Update config |
 | `ao.daemon.pause` | `{}` | Pause dispatch |
 | `ao.daemon.resume` | `{}` | Resume dispatch |
 
@@ -84,15 +84,15 @@ ao.agent.*      — agent control
 | `ao.workflow.list` | `{limit?, status?, workflow_ref?, task_id?}` | List workflows |
 | `ao.workflow.get` | `{id}` | Workflow details |
 | `ao.workflow.decisions` | `{id}` | Get workflow decisions |
-| `ao.workflow.run` | `{task_id?, title?, workflow_ref?}` | Start workflow |
-| `ao.workflow.run-multiple` | `{...}` | Run multiple workflows |
-| `ao.workflow.execute` | `{...}` | Execute workflow |
+| `ao.workflow.run` | `{task_id?, requirement_id?, title?, workflow_ref?, input_json?}` | Start workflow |
+| `ao.workflow.run-multiple` | `{runs[]}` | Run multiple workflows |
+| `ao.workflow.execute` | `{task_id?, workflow_ref?, phase?, model?, tool?}` | Execute workflow synchronously |
 | `ao.workflow.cancel` | `{id}` | Cancel workflow |
 | `ao.workflow.pause` | `{id}` | Pause workflow |
 | `ao.workflow.resume` | `{id}` | Resume workflow |
-| `ao.workflow.phase.approve` | `{id}` | Approve manual gate |
+| `ao.workflow.phase.approve` | `{workflow_id, phase_id, feedback?}` | Approve manual gate |
 | `ao.workflow.phases.list` | `{}` | List phase definitions |
-| `ao.workflow.phases.get` | `{id}` | Get phase definition |
+| `ao.workflow.phases.get` | `{phase}` | Get phase definition |
 | `ao.workflow.definitions.list` | `{}` | List workflow definitions |
 | `ao.workflow.config.get` | `{}` | Get workflow config |
 | `ao.workflow.config.validate` | `{}` | Validate workflow config |
@@ -106,8 +106,8 @@ ao.agent.*      — agent control
 | `ao.output.run` | `{run_id}` | Full run output |
 | `ao.output.monitor` | `{run_id}` | Monitor running workflow |
 | `ao.output.jsonl` | `{run_id}` | JSONL formatted output |
-| `ao.output.phase-outputs` | `{run_id}` | Per-phase output |
-| `ao.output.artifacts` | `{run_id}` | Run artifacts |
+| `ao.output.phase-outputs` | `{workflow_id, phase_id?}` | Per-phase output |
+| `ao.output.artifacts` | `{execution_id}` | Run artifacts |
 
 ## Requirement Tools
 
@@ -126,6 +126,7 @@ ao.agent.*      — agent control
 |------|-------|---------|
 | `ao.runner.health` | `{}` | Runner process health |
 | `ao.runner.orphans-detect` | `{}` | Detect orphaned runs |
+| `ao.runner.orphans-cleanup` | `{run_id[]}` | Clean up orphaned runs |
 | `ao.runner.restart-stats` | `{}` | Restart statistics |
 
 ## Agent Tools
@@ -152,14 +153,16 @@ ao.agent.*      — agent control
 3. ao.daemon.health → verify daemon is running
 4. ao.queue.list → watch for assigned status
 5. ao.workflow.list → find running workflow
+6. ao.output.monitor or ao.output.run → inspect the run
 ```
 
 ### Debug a Failed Workflow
 ```
 1. ao.workflow.list → find failed workflow ID
 2. ao.workflow.get → check failure_reason, current_phase
-3. ao.output.tail → read agent output for errors
-4. ao.task.get → check task state
+3. ao.output.run / ao.output.jsonl → read agent output for errors
+4. ao.output.phase-outputs → inspect persisted phase payloads
+5. ao.task.get → check task state
 ```
 
 ### Clean Up Stuck State

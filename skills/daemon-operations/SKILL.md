@@ -37,6 +37,13 @@ Options:
 - `--idle-timeout-secs N` — override workflow idle timeout
 - `--skip-runner` — do not auto-start the runner process
 
+### Foreground Mode
+```bash
+ao daemon run --pool-size 2 --interval-secs 5
+```
+
+Use foreground mode when debugging startup failures or runner issues.
+
 ### Pool Size Guidance
 - **pool_size=2**: minimal, may starve cron workflows (also the default `--max-tasks-per-tick`)
 - **pool_size=5**: good default — 3 crons + 2 task workflows
@@ -67,10 +74,35 @@ ao daemon logs --limit 100
 
 Log file location: `~/.ao/<repo-scope>/daemon/daemon.log`
 
+### Live Structured Log Streaming
+```bash
+ao daemon stream --pretty
+ao daemon stream --cat phase --level warn
+ao daemon stream --workflow wf-abc123 --tail 50
+ao daemon stream --run run-xyz789 --no-follow
+```
+
+Use `ao daemon stream` for the new structured log stream across daemon, workflows, and runs.
+
+Key filters:
+- `--cat <prefix>` — category prefix such as `llm`, `schedule`, or `phase`
+- `--level <debug|info|warn|error>` — minimum log level
+- `--workflow <id>` — narrow to one workflow
+- `--run <id>` — narrow to one run
+- `--tail <n>` — print the most recent `n` entries before following
+- `--no-follow` — print the tail and exit
+- `--pretty` — colorized human-readable output instead of raw JSON
+
 ### Status
 ```bash
 ao daemon status
 ```
+
+### Which Stream To Use
+- `ao daemon stream` — real-time structured logs from daemon, workflows, and runs
+- `ao daemon events` — daemon event history and follow-mode event stream
+- `ao output monitor --run-id <id>` — live output for one specific run
+- `ao daemon logs` — read recent daemon log lines without following
 
 ## Stopping
 
@@ -78,7 +110,15 @@ ao daemon status
 ao daemon stop
 ```
 
-Graceful shutdown with 60-second timeout. Running workflows are cancelled.
+Graceful shutdown waits for in-flight work up to the configured timeout.
+
+### Persistent Config
+```bash
+ao daemon config
+ao daemon config --pool-size 3 --auto-run-ready true --auto-merge false --auto-pr false
+```
+
+`ao daemon config` is the current mutation command for daemon settings. The MCP name remains `ao.daemon.config-set`.
 
 ## MCP Tools
 
@@ -90,26 +130,17 @@ Graceful shutdown with 60-second timeout. Running workflows are cancelled.
 | `ao.daemon.health` | Detailed health metrics |
 | `ao.daemon.events` | Recent daemon events |
 | `ao.daemon.logs` | Read daemon log |
+| `ao.daemon.stream` | Stream structured logs in real time (CLI only) |
 | `ao.daemon.agents` | List active agent processes |
 | `ao.daemon.config` | Read daemon config |
-| `ao.daemon.config-set` | Update daemon config |
+| `ao.daemon.config-set` | Update daemon config over MCP |
 | `ao.daemon.clear-logs` | Clear log file |
 | `ao.daemon.pause` | Pause dispatch |
 | `ao.daemon.resume` | Resume dispatch |
 
 ## Daemon Architecture
 
-```
-ao daemon start
-  └─ daemon process (PID in daemon.lock)
-       ├─ tick loop (every interval_secs)
-       │   ├─ process_due_schedules() — fire cron workflows
-       │   ├─ capture_snapshot() — load task/queue/workflow state
-       │   ├─ dispatch_ready() — pick tasks from queue, spawn workflows
-       │   └─ reconcile() — clean zombie workflows, update state
-       └─ runner process (agent-runner binary)
-            └─ spawns CLI tools (claude, codex, gemini) per phase
-```
+AO resolves a project root, loads repo-scoped runtime state under `~/.ao/<repo-scope>/`, manages the queue, and uses `agent-runner` to launch `claude`, `codex`, or `gemini` for workflow phases.
 
 ## Common Issues
 
@@ -124,7 +155,8 @@ env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ACCESS_TOKEN ao daemon start --autonomo
 ### Daemon Crashes
 Check the log:
 ```bash
-tail -100 ~/.ao/<repo-scope>/daemon/daemon.log
+ao daemon logs --limit 100
+ao daemon stream --level error --pretty
 ```
 
 Common causes:
@@ -144,5 +176,5 @@ ps -p $(cat ~/.ao/<repo-scope>/daemon/daemon.lock)
 Agent-runner processes can accumulate across daemon restarts:
 ```bash
 pgrep -f agent-runner | wc -l    # count
-pkill -f agent-runner             # clean up
+ao runner orphans detect
 ```

@@ -54,9 +54,9 @@ These skills are automatically loaded by Claude when contextually relevant:
 Once installed, Claude can help you:
 
 - **Set up AO**: `/setup-ao` walks through project init, MCP config, and first workflow
-- **Write workflows**: Ask Claude to create a `custom.yaml` — it knows the full YAML schema
+- **Write workflows**: Ask Claude to create or update `.ao/workflows.yaml` and `.ao/workflows/*.yaml`
 - **Manage tasks**: Claude can create, prioritize, and enqueue tasks via MCP tools
-- **Debug issues**: `/troubleshooting` covers daemon crashes, workflow failures, queue problems
+- **Debug issues**: `/troubleshooting` covers daemon crashes, workflow failures, queue problems, and the new live log streaming flow via `ao daemon stream`
 - **Configure agents**: Claude knows how to set up persona agents for the full product lifecycle
 - **Build packs**: `/pack-authoring` guides you through creating installable workflow packs
 - **Build skills**: `/skill-authoring` covers creating reusable agent behavior definitions

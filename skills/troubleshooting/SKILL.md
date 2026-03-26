@@ -7,24 +7,34 @@ auto_invoke: true
 
 # Troubleshooting AO
 
+Start with:
+
+```bash
+ao doctor
+```
+
 ## Daemon Won't Start
 
 ### "daemon already running"
 ```bash
 ao daemon health    # check if actually alive
 ao daemon stop      # try graceful stop
-# If that fails:
-kill $(cat ~/.ao/<repo-scope>/daemon/daemon.lock)
-ao daemon start --autonomous ...
+# If it still exits unexpectedly, run in the foreground:
+ao daemon run
 ```
 
 ### Daemon Crashes Immediately
-Check log: `tail -50 ~/.ao/<repo-scope>/daemon/daemon.log`
+Check the log:
+
+```bash
+ao daemon logs --limit 50
+ao daemon stream --level error --pretty
+```
 
 Common causes:
 - **Disk full**: worktrees and build artifacts accumulate. Run `cargo clean` or add a cleanup phase.
 - **Lock contention**: another process holds the daemon lock.
-- **Config error**: invalid `custom.yaml` — check YAML syntax.
+- **Config error**: invalid workflow YAML. Run `ao workflow config validate`.
 
 ## Workflows Fail Immediately (Cancelled in <5 seconds)
 
@@ -47,8 +57,11 @@ ao daemon start --autonomous --pool-size 5 ...
 ### "failed to connect runner"
 The agent-runner process isn't responding. Usually means it crashed.
 ```bash
-pgrep -f agent-runner    # check if alive
-ao daemon stop && ao daemon start --autonomous ...    # restart
+ao runner health
+ao runner orphans detect
+ao daemon stream --cat llm --level warn --pretty
+ao daemon stop
+ao daemon start --autonomous
 ```
 
 ## Workflows Fail at Implementation Phase
@@ -77,19 +90,20 @@ ao queue drop --subject-id TASK-XXX    # remove them
 ```
 
 ### Queue Not Filling
-The work-planner cron should enqueue ready tasks every 5 minutes. If queue stays empty:
+If queue stays empty:
 
-1. Check cron status: look at schedule-state.json
-2. Check if work-planner workflow succeeds: `ao workflow list --limit 5`
-3. Check if there are ready tasks: `ao task list --status ready`
-4. Check if tasks have `consecutive_dispatch_failures > 3` (these are skipped)
+1. Check if there are ready tasks: `ao task list --status ready`
+2. Enqueue a task manually: `ao queue enqueue --task-id TASK-XXX`
+3. Check daemon health: `ao daemon health`
+4. Inspect recent workflows: `ao workflow list --limit 5`
+5. Follow scheduler logs: `ao daemon stream --cat schedule --pretty`
 
 ## Task State Issues
 
 ### Tasks Stuck as "blocked"
 ```bash
 ao task list --status blocked
-ao task get --id TASK-XXX    # check blocked_reason
+ao task get --id TASK-XXX
 ao task status --id TASK-XXX --status ready    # force unblock
 ```
 
@@ -99,21 +113,47 @@ No active workflow but task is still in-progress:
 ao task status --id TASK-XXX --status ready    # reset to ready
 ```
 
-The task-reconciler cron should catch these automatically.
+Then verify the queue and workflow state before re-enqueueing.
+
+## Log Streaming Patterns
+
+### Watch All New Structured Logs
+```bash
+ao daemon stream --pretty
+```
+
+### Focus On Scheduler Or Phase Problems
+```bash
+ao daemon stream --cat schedule --level warn --pretty
+ao daemon stream --cat phase --level warn --pretty
+```
+
+### Focus On One Workflow Or Run
+```bash
+ao daemon stream --workflow wf-abc123 --tail 100 --pretty
+ao daemon stream --run run-xyz789 --tail 100 --pretty
+```
+
+### Compare Live Logs With Run Output
+Use:
+- `ao daemon stream` when you need cross-cutting operational logs
+- `ao output monitor --run-id <id>` when you need the live stdout/stderr stream for a single run
+- `ao output run --run-id <id>` when the run already finished
 
 ## PR Issues
 
 ### PRs Not Getting Merged
-Check if pr-reviewer cron is running and completing:
+Check recent workflow state and daemon config:
 ```bash
-# Check schedule state
-cat ~/.ao/<repo-scope>/state/schedule-state.json
-
-# Check recent pr-reviewer workflows
 ao workflow list --limit 5
+ao daemon config
 ```
 
-If pr-reviewer runs but only COMMENTs (never APPROVEs), update the agent prompt in `custom.yaml` to be more decisive about approving.
+If merges depend on a review phase in your workflow, inspect that phase output with:
+
+```bash
+ao output phase-outputs --workflow-id WF-XXX
+```
 
 ### Merge Conflicts
 When multiple task branches diverge from main:
@@ -127,32 +167,29 @@ The pr-reviewer should skip conflicted PRs. Rebase manually or create a task to 
 
 ### Too Many agent-runner Processes
 ```bash
-pgrep -f agent-runner | wc -l
-# If > 10, clean up:
-pkill -f agent-runner
-ao daemon stop
-ao daemon start --autonomous ...
+ao runner orphans detect
+ao runner restart-stats
 ```
 
 ## State Location Reference
 
 ```
-~/.ao/<repo-scope>/
-├── config/          # Compiled workflow config
-├── daemon/          # PID, lock, logs, pm-config
-├── scheduler/       # dispatch-queue.json
-├── state/           # tasks, schedule-state, errors
-├── runs/            # Workflow run output
-├── worktrees/       # Git worktrees for task branches
-└── workflow-state/  # Per-workflow state files
+.ao/
+├── config.json
+├── pm-config.json
+├── workflows.yaml
+└── workflows/
 ```
 
-Project local:
 ```
-.ao/
-├── config.json      # Project config
-└── workflows/       # Custom YAML overlays
-    └── custom.yaml
+~/.ao/<repo-scope>/
+├── core-state.json
+├── resume-config.json
+├── tasks/
+├── requirements/
+├── runs/
+├── artifacts/
+└── worktrees/
 ```
 
 ## Tasks Marked "Done" But PR Never Merged
@@ -197,10 +234,11 @@ If checks fail, evaluate: is the failure from THIS PR or pre-existing?
 
 ## Daemon Doesn't Reload YAML Changes
 
-The daemon reads `.ao/workflows/custom.yaml` at startup and compiles it. Changes to the YAML while the daemon is running are NOT picked up.
+Changes to `.ao/workflows.yaml` or `.ao/workflows/*.yaml` are not picked up by an already-running daemon.
 
-**Fix:** Always restart the daemon after editing custom.yaml:
+**Fix:** Validate, then restart:
 ```bash
+ao workflow config validate
 ao daemon stop
 ao daemon start --autonomous --auto-run-ready true --pool-size 3
 ```
@@ -232,5 +270,5 @@ Multiple agents running in parallel will conflict on shared files (especially `p
 If the daemon's `auto_merge` is `true`, it merges PRs without code review. Set both to `false` and let the pr-review phase handle merging:
 
 ```bash
-ao daemon config-set --auto-merge false --auto-pr false
+ao daemon config --auto-merge false --auto-pr false
 ```

@@ -10,31 +10,33 @@ auto_invoke: true
 ## Task Lifecycle
 
 ```
-backlog → ready → in-progress → done
-                ↘ blocked → ready (when unblocked)
-                ↘ on-hold → ready (when released)
-                ↘ cancelled
+backlog → todo → ready → in-progress → done
+                    ↘ blocked → ready
+                    ↘ on-hold → ready
+backlog/todo/ready/in-progress → cancelled
 ```
 
 ## CLI Commands
 
 ### Create
 ```bash
-ao task create --title "Fix login bug" --priority critical --type bugfix
-ao task create --title "Add dark mode" --priority medium --type feature --description "Support system theme preference"
+ao task create --title "Fix login bug" --priority critical --task-type bugfix
+ao task create --title "Add dark mode" --priority medium --task-type feature --description "Support system theme preference"
 ```
 
 Options:
 - `--priority`: critical, high, medium, low
-- `--type`: feature, bugfix, hotfix, refactor, test, chore, docs, experiment
+- `--task-type`: feature, bugfix, hotfix, refactor, docs, test, chore, experiment
 - `--description`: detailed description
-- `--tags`: comma-separated tags
+- `--linked-requirement`: repeat to attach requirement ids
+- `--linked-architecture-entity`: repeat to attach architecture entities
 
 ### List and Filter
 ```bash
 ao task list                          # all tasks
 ao task list --status ready           # ready tasks only
 ao task list --status blocked         # blocked tasks
+ao task list --task-type bugfix       # filter by task type
 ao task prioritized                   # sorted by priority
 ao task stats                         # aggregate counts by status/priority/type
 ```
@@ -64,8 +66,8 @@ ao task resume --id TASK-001
 
 ### Cancel / Reopen
 ```bash
-ao task cancel --id TASK-001
-ao task reopen --id TASK-001    # reopens from terminal state back to backlog
+ao task cancel --id TASK-001 --confirm TASK-001
+ao task reopen --id TASK-001 --confirm TASK-001
 ```
 
 ### Set Priority / Deadline
@@ -81,13 +83,16 @@ ao task update --id TASK-001 --title "Updated title" --description "New details"
 
 ### Checklists
 ```bash
-ao task checklist-add --id TASK-001 --item "Add unit tests"
-ao task checklist-update --id TASK-001 --index 0 --completed true
+ao task checklist-add --id TASK-001 --description "Add unit tests"
+ao task checklist-update --id TASK-001 --item-id chk-1 --completed true
 ```
 
-### Bulk Operations
+Use `ao task get --id TASK-001` first to find the checklist `item_id`.
+
+### Dependencies
 ```bash
-ao task bulk-status --ids TASK-001,TASK-002,TASK-003 --status cancelled
+ao task dependency-add --id TASK-002 --dependency-id TASK-001 --dependency-type blocked-by
+ao task dependency-remove --id TASK-002 --dependency-id TASK-001
 ```
 
 ## MCP Tools
@@ -119,13 +124,21 @@ ao task bulk-status --ids TASK-001,TASK-002,TASK-003 --status cancelled
 
 ```json
 // Create a task
-{ "title": "Add rate limiting", "priority": "high", "type": "feature" }
+{ "title": "Add rate limiting", "priority": "high", "task_type": "feature" }
 
 // List ready tasks
 { "status": "ready" }
 
 // Update status
 { "id": "TASK-042", "status": "done" }
+
+// Bulk status update
+{
+  "updates": [
+    { "id": "TASK-001", "status": "done" },
+    { "id": "TASK-002", "status": "cancelled" }
+  ]
+}
 ```
 
 ## Patterns
@@ -145,11 +158,11 @@ ao task status --id TASK-005 --status ready
 ```
 
 ### Task Dependencies
-Tasks can reference dependencies in their description or via `blocked_by`. The work-planner cron checks these before enqueuing.
+Use explicit dependency edges when task ordering matters. They show up in task detail and are respected by prioritization and scheduling logic.
 
 ### Workflow Integration
-When the daemon picks up a task from the queue, it:
-1. Creates a git worktree (`ao/task-XXX` branch)
-2. Runs the workflow phases (requirements → implementation → test → create-pr)
-3. On success, the task PR gets reviewed by the pr-reviewer cron
-4. On merge, the reconciler marks the task as `done`
+Typical flow:
+1. Move the task to `ready`
+2. Enqueue it with `ao queue enqueue --task-id TASK-XXX`
+3. Run a workflow explicitly or let the daemon pick it up
+4. Inspect execution with `ao workflow list`, `ao output run`, and `ao output phase-outputs`

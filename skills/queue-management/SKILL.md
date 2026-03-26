@@ -7,7 +7,7 @@ auto_invoke: true
 
 # Queue Management
 
-The dispatch queue controls what work the daemon picks up next. Tasks are enqueued, assigned to agents, and removed on completion.
+The dispatch queue controls what work the daemon picks up next. Subjects can be tasks, requirements, or custom dispatches.
 
 ## Queue Entry States
 
@@ -24,7 +24,7 @@ any → dropped (via ao queue drop)
 ao queue list
 ```
 
-Shows all entries with status, subject_id, task_id, assigned_at.
+Shows each entry's `subject_id`, status, and selected metadata.
 
 ### Queue Stats
 ```bash
@@ -36,7 +36,7 @@ Returns: total, pending, assigned, held counts.
 ### Enqueue a Task
 ```bash
 ao queue enqueue --task-id TASK-001
-ao queue enqueue --task-id TASK-001 --workflow-ref quick-fix
+ao queue enqueue --task-id TASK-001 --workflow-ref ao.task/quick-fix
 ```
 
 The daemon picks up pending entries and assigns them to agents.
@@ -47,7 +47,7 @@ The daemon picks up pending entries and assigns them to agents.
 ao queue enqueue --requirement-id REQ-039
 
 # Custom subject
-ao queue enqueue --title "Run nightly build" --workflow-ref standard
+ao queue enqueue --title "Run nightly build" --description "Verify the release branch" --workflow-ref ops
 ```
 
 ### Hold / Release
@@ -71,6 +71,8 @@ Set dispatch priority order:
 ao queue reorder --subject-id TASK-003 --subject-id TASK-001 --subject-id TASK-002
 ```
 
+Repeat `--subject-id` in the exact order you want the daemon to consider.
+
 ## MCP Tools
 
 | Tool | Purpose |
@@ -90,7 +92,7 @@ ao queue reorder --subject-id TASK-003 --subject-id TASK-001 --subject-id TASK-0
 { "task_id": "TASK-042" }
 
 // Enqueue with workflow override
-{ "task_id": "TASK-042", "workflow_ref": "quick-fix" }
+{ "task_id": "TASK-042", "workflow_ref": "ao.task/quick-fix" }
 
 // Drop a stuck entry
 { "subject_id": "TASK-042" }
@@ -99,7 +101,7 @@ ao queue reorder --subject-id TASK-003 --subject-id TASK-001 --subject-id TASK-0
 ## Patterns
 
 ### Queue Draining
-When all pending entries are processed, the queue is empty. The work-planner cron refills it every 5 minutes by scanning ready tasks.
+When all pending entries are processed, the queue is empty. Refill it by enqueueing tasks directly or by running whatever workflow/schedule in your project is responsible for planning work.
 
 ### Stale Assigned Entries
 If a workflow completes or fails but the queue entry stays `assigned`, it's stale. The reconciler cron should drop these, or use:
@@ -108,7 +110,7 @@ ao queue drop --subject-id TASK-XXX
 ```
 
 ### Duplicate Prevention
-`ao queue enqueue` is idempotent — it won't add a duplicate if the same task+workflow is already queued. Safe to call repeatedly.
+Treat `ao queue enqueue` as safe to retry, but still verify current queue state with `ao queue list` when debugging duplicate work.
 
 ### Queue Capacity
-The daemon dispatches from the queue up to `pool_size` concurrent agents. If the queue has 20 pending and pool_size is 5, only 5 run at a time. The rest wait.
+The daemon dispatches from the queue up to its configured `pool_size`. If the queue has more pending work than open slots, the rest stay pending until capacity frees up.
