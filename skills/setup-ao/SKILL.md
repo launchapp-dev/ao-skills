@@ -1,41 +1,67 @@
 ---
 name: setup-ao
-description: Set up AO in the current project — initialize config, connect MCP, create first workflow
+description: Set up AO in the current project - initialize config, connect MCP, create a first workflow, and start the daemon. Use when bootstrapping AO in a repo or fixing an incomplete AO setup.
 user_invocable: true
 auto_invoke: false
 ---
 
-You are setting up AO — an autonomous agent orchestrator — in this project.
+You are setting up AO in the current project.
 
-## Step 1: Read the AO skills
-Read all files in ~/ao-skills/skills/ to understand how AO works:
-- `getting-started/SKILL.md` — install, project structure, core concepts
-- `mcp-setup/SKILL.md` — how to create `.mcp.json` and connect AI tools
-- `configuration/SKILL.md` — config files, state layout, model routing
-- `task-management/SKILL.md` — task lifecycle, CLI and MCP commands
-- `workflow-authoring/SKILL.md` — workflow YAML, agents, phases, schedules
-- `daemon-operations/SKILL.md` — start/stop daemon, monitoring, troubleshooting
-- `queue-management/SKILL.md` — dispatch queue operations
-- `mcp-tools/SKILL.md` — current `ao.*` MCP tool reference
-- `troubleshooting/SKILL.md` — common failures and fixes
+Do not preload the entire `~/ao-skills/skills/` directory. Start with targeted reads:
 
-## Step 2: Set up the project
-1. Run `ao setup` in the project root to initialize .ao/
-2. Create .mcp.json pointing to the ao binary (see mcp-setup skill)
-3. Verify MCP connection by calling ao.daemon.status
+- Read [getting-started](../getting-started/SKILL.md) first for the core AO mental model.
+- Read [mcp-setup](../mcp-setup/SKILL.md) only when creating or fixing `.mcp.json`.
+- Read [workflow-authoring](../workflow-authoring/SKILL.md) only when editing `.ao/workflows.yaml` or `.ao/workflows/*.yaml`.
+- Read [daemon-operations](../daemon-operations/SKILL.md) only when starting, checking, or debugging the daemon.
+- Read [troubleshooting](../troubleshooting/SKILL.md) only if setup fails.
+- Use [configuration](../configuration/SKILL.md), [task-management](../task-management/SKILL.md), [queue-management](../queue-management/SKILL.md), and [mcp-tools](../mcp-tools/SKILL.md) as lookup references, not mandatory preload.
 
-## Step 3: Create a workflow
-Create `.ao/workflows.yaml` or `.ao/workflows/custom.yaml` with:
-- At least one agent (model: claude-sonnet-4-6, tool: claude)
-- A standard workflow: requirements → implementation → unit-test → create-pr
-- Any recurring schedules your project actually needs
+## Setup flow
 
-## Step 4: Start the daemon
-Start with: ao daemon start --autonomous --auto-run-ready true --pool-size 5 --interval-secs 10
-Verify with: ao daemon health
+1. Run `ao setup` in the project root to initialize `.ao/`.
+2. Create `.mcp.json` pointing to the `ao` binary.
+3. Create a minimal workflow file.
+4. Start the daemon with conservative defaults.
+5. Create one small test task and verify end-to-end execution.
 
-## Step 5: Create tasks and let it run
-Create tasks via ao task create, enqueue via ao queue enqueue.
-The daemon will dispatch workflows based on your configured queue and workflow definitions.
+## Minimal workflow
 
-Always check ~/ao-skills/skills/ for reference when unsure about commands, config, or troubleshooting.
+Start with a small workflow instead of a full production pipeline:
+
+```yaml
+agents:
+  default:
+    model: claude-sonnet-4-6
+    tool: claude
+
+phases:
+  implementation:
+    mode: agent
+    agent: default
+    directive: Implement the task and report what changed.
+
+workflows:
+  - id: standard
+    name: Standard
+    phases: [implementation]
+```
+
+Expand it only after the daemon, MCP, and task loop work.
+
+## Daemon startup
+
+Start with:
+
+```bash
+ao daemon start --autonomous --auto-run-ready true --pool-size 5 --interval-secs 10
+ao daemon health
+```
+
+## Verification
+
+- Run `ao daemon status` or the MCP equivalent.
+- Create a small task with `ao task create`.
+- Enqueue it with `ao queue enqueue`.
+- Confirm the daemon picks it up before adding more workflows or schedules.
+
+If something fails, read only the skill that matches the blocker instead of sweeping the whole repo.
